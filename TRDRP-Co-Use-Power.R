@@ -4,8 +4,8 @@
 
 library(SpPack)
 library(multilevel)
-library(dplyr)
 library(plyr)
+library(dplyr)
 library(tidyr)
 library(ggplot2)
 library(gmodels) #CrossTable Function
@@ -40,7 +40,13 @@ SubjectSim <- function(baseCig, AlcRate, AlcOR, Days){
 
 SubjectSim(baseCig=.1, AlcRate = .4, AlcOR = 9, Days = 14)
 
-fo
+for(i in 1:100){
+  SubData <- SubjectSim(baseCig=.1, AlcRate = .4, AlcOR = 9, Days = 14)
+  
+  SubData %>% group_by(as.factor(Alc)) %>% summarise(CigMean=mean(Cig))
+  
+  CigMeans <-
+}
 
 
 
