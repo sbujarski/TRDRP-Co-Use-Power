@@ -61,7 +61,7 @@ SpHist(DrinkCigMeans)
 
 
 #simulate multiple subjects
-NSubs.t = 50 #test parameters
+NSubs.t = 100 #test parameters
 baseCig.t = .50
 AlcRate.t = .50
 AlcOR.t = 2
@@ -75,3 +75,6 @@ for (i in 2:NSubs.t){
 }
 
 FullData %>% group_by(Subject,Alc) %>% summarise(CigMean=mean(Cig))
+
+SpHist(subset(FullData %>% group_by(Subject,Alc) %>% summarise(CigMean=mean(Cig)), Alc == 0)$CigMean)
+SpHist(subset(FullData %>% group_by(Subject,Alc) %>% summarise(CigMean=mean(Cig)), Alc == 1)$CigMean)
