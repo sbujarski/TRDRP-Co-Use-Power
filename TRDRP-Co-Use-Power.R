@@ -60,4 +60,18 @@ SpHist(NonDrinkCigMeans)
 SpHist(DrinkCigMeans)
 
 
+#simulate multiple subjects
+NSubs.t = 50 #test parameters
+baseCig.t = .50
+AlcRate.t = .50
+AlcOR.t = 2
+Days.t = 14
 
+#first try with homogenous population odds ratio
+FullData <- cbind(Subject=1, SubjectSim(baseCig=baseCig.t, AlcRate = AlcRate.t, AlcOR = AlcOR.t, Days = Days.t))
+for (i in 2:NSubs.t){
+  SubjectData <- cbind(Subject=i, SubjectSim(baseCig=baseCig.t, AlcRate = AlcRate.t, AlcOR = AlcOR.t, Days = Days.t))
+  FullData <- rbind(FullData, SubjectData)
+}
+
+FullData %>% group_by(Subject,Alc) %>% summarise(CigMean=mean(Cig))
