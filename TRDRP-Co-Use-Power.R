@@ -28,8 +28,9 @@ SubjectSim <- function(baseCig, AlcRate, AlcOR, Days){
   ObaseCig <- baseCig / (1 - baseCig) #baseline odds of cig
   AlcCig <- (AlcOR*ObaseCig)/(1+AlcOR*ObaseCig)
   
-  print(paste("ObaseCig",ObaseCig))
-  print(paste("AlcCig",AlcCig))
+  #printing for testing
+  #print(paste("ObaseCig",ObaseCig))
+  #print(paste("AlcCig",AlcCig))
   
   Cig <- ifelse(Alc==0, rbinom(sum(Alc==0), 1, baseCig), #simulate cigarette smoking with no alcohol
                 rbinom(sum(Alc==1), 1, AlcCig)) #simulate cigarette smoking after drinking
@@ -38,15 +39,23 @@ SubjectSim <- function(baseCig, AlcRate, AlcOR, Days){
   return(DaysData)
 }
 
+#SubjectSim Testing
 SubjectSim(baseCig=.1, AlcRate = .4, AlcOR = 9, Days = 14)
 
-
-for(i in 1:100){
+#run full simulation
+sim=5000
+NonDrinkCigMeans <- rep(NA, sim)
+DrinkCigMeans <- rep(NA, sim)
+for(i in 1:sim){
   SubData <- SubjectSim(baseCig=.4, AlcRate = .4, AlcOR = 2, Days = 14)
-  SubData
+  
   CigMeans <- SubData %>% group_by(Alc) %>% summarise(CigMean=mean(Cig))
-  CigMeans
+  
+  NonDrinkCigMeans[i] <- CigMeans$CigMean[1]
+  DrinkCigMeans[i] <- CigMeans$CigMean[2]
 }
 
-
+#seems to work great!
+SpHist(NonDrinkCigMeans)
+SpHist(DrinkCigMeans)
 
