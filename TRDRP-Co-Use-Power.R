@@ -31,8 +31,8 @@ SubjectSim <- function(baseCig, AlcRate, AlcOR, Days){
   print(paste("ObaseCig",ObaseCig))
   print(paste("AlcCig",AlcCig))
   
-  Cig <- ifelse(Alc==0, rbinom(1, 1, baseCig), #simulate cigarette smoking with no alcohol
-                rbinom(1, 1, AlcCig)) #simulate cigarette smoking after drinking
+  Cig <- ifelse(Alc==0, rbinom(sum(Alc==0), 1, baseCig), #simulate cigarette smoking with no alcohol
+                rbinom(sum(Alc==1), 1, AlcCig)) #simulate cigarette smoking after drinking
     
   DaysData <- data.frame(Alc=Alc, Cig=Cig)
   return(DaysData)
@@ -40,12 +40,12 @@ SubjectSim <- function(baseCig, AlcRate, AlcOR, Days){
 
 SubjectSim(baseCig=.1, AlcRate = .4, AlcOR = 9, Days = 14)
 
+
 for(i in 1:100){
-  SubData <- SubjectSim(baseCig=.1, AlcRate = .4, AlcOR = 9, Days = 14)
-  
-  SubData %>% group_by(as.factor(Alc)) %>% summarise(CigMean=mean(Cig))
-  
-  CigMeans <-
+  SubData <- SubjectSim(baseCig=.4, AlcRate = .4, AlcOR = 2, Days = 14)
+  SubData
+  CigMeans <- SubData %>% group_by(Alc) %>% summarise(CigMean=mean(Cig))
+  CigMeans
 }
 
 
