@@ -131,3 +131,10 @@ logistic.MLM <- glmer(Cig ~ (1 | Subject) + Alc,
                       control = glmerControl(optimizer = "bobyqa"))
 summary(logistic.MLM)
 
+#extract Alc p-value for power calculation later
+summary(logistic.MLM)$coefficients["Alc","Pr(>|z|)"]
+
+#
+
+
+
