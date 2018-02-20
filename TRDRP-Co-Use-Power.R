@@ -99,17 +99,35 @@ Days.t = 14
 #subject specific parameters
 parameters <- data.frame(baseCig.t = rnorm(NSubs.t, .5, .2), #simulate base Cig smoking rate from N(.5, .2)
                          AlcRate.t = rnorm(NSubs.t, .5, .2), #simulate base Cig smoking rate from N(.5, .2))
-                         AlcOR.t = rlnorm(n=10, meanlog=log(2), sdlog=.4)) #log normal distribution of subject Odds Ratio (mean OR = 2, sd=.4)
+                         AlcOR.t = rlnorm(n=NSubs.t, meanlog=log(2), sdlog=.4)) #log normal distribution of subject Odds Ratio (mean OR = 2, sd=.4)
+SpDesc(parameters)
+#check for no negative rates
+while(min(parameters$baseCig.t) <=0){
+  parameters$baseCig.t <- ifelse(parameters$baseCig.t<=0, rnorm(NSubs.t, .5, .2), parameters$baseCig.t)
+}
 
+while(min(parameters$AlcRate.t) <=0){
+  parameters$AlcRate.t <- ifelse(parameters$AlcRate.t<=0, rnorm(NSubs.t, .5, .2), parameters$AlcRate.t)
+}
+SpDesc(parameters)
+SpHist(parameters, variable = "baseCig.t")
+SpHist(parameters, variable = "AlcRate.t")
+SpHist(parameters, variable = "AlcOR.t")
 
-
-#first try with homogenous population odds ratio
-FullData <- cbind(Subject=1, SubjectSim(baseCig=baseCig.t, AlcRate = AlcRate.t, AlcOR = AlcOR.t, Days = Days.t))
+#simulate Nsubs.t subject data
+FullData <- cbind(Subject=1, SubjectSim(baseCig=parameters$baseCig.t[1], AlcRate = parameters$AlcRate.t[1], 
+                                        AlcOR = parameters$AlcOR.t[1], Days = Days.t))
 for (i in 2:NSubs.t){
-  SubjectData <- cbind(Subject=i, SubjectSim(baseCig=baseCig.t, AlcRate = AlcRate.t, AlcOR = AlcOR.t, Days = Days.t))
+  SubjectData <- cbind(Subject=i, SubjectSim(baseCig=parameters$baseCig.t[i], AlcRate = parameters$AlcRate.t[i], 
+                                             AlcOR = parameters$AlcOR.t[i], Days = Days.t))
   FullData <- rbind(FullData, SubjectData)
 }
 
 FullData %>% group_by(Subject,Alc) %>% summarise(CigMean=mean(Cig))
 
+logistic.MLM <- glmer(Cig ~ (1 | Subject) + Alc,
+                      data=FullData,
+                      family=binomial,
+                      control = glmerControl(optimizer = "bobyqa"))
+summary(logistic.MLM)
 
