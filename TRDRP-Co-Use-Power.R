@@ -134,7 +134,10 @@ summary(logistic.MLM)
 #extract Alc p-value for power calculation later
 summary(logistic.MLM)$coefficients["Alc","Pr(>|z|)"]
 
-#
+
+#Now that simulation works to make a MLM dataset, need to write some for loops to run simulations for power analysis
+
+
 
 
 
