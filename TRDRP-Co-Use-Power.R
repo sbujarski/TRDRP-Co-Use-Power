@@ -3,7 +3,7 @@
 #Power Calculation via simulation
 
 library(SpPack)
-library(multilevel)
+library(lme4)
 library(plyr)
 library(dplyr)
 library(tidyr)
@@ -78,3 +78,38 @@ FullData %>% group_by(Subject,Alc) %>% summarise(CigMean=mean(Cig))
 
 SpHist(subset(FullData %>% group_by(Subject,Alc) %>% summarise(CigMean=mean(Cig)), Alc == 0)$CigMean)
 SpHist(subset(FullData %>% group_by(Subject,Alc) %>% summarise(CigMean=mean(Cig)), Alc == 1)$CigMean)
+
+#run a sample model with simulated subjects
+#Seems to work great using lme4:glmer
+#https://stats.idre.ucla.edu/r/dae/mixed-effects-logistic-regression/
+logistic.MLM <- glmer(Cig ~ (1 | Subject) + Alc,
+                    data=FullData,
+                    family=binomial,
+                    control = glmerControl(optimizer = "bobyqa"))
+summary(logistic.MLM)
+
+
+
+#Simulate with subject specific values
+
+#universal parameters
+NSubs.t = 100 #test parameters
+Days.t = 14
+
+#subject specific parameters
+parameters <- data.frame(baseCig.t = rnorm(NSubs.t, .5, .2), #simulate base Cig smoking rate from N(.5, .2)
+                         AlcRate.t = rnorm(NSubs.t, .5, .2), #simulate base Cig smoking rate from N(.5, .2))
+                         AlcOR.t = rlnorm(n=10, meanlog=log(2), sdlog=.4)) #log normal distribution of subject Odds Ratio (mean OR = 2, sd=.4)
+
+
+
+#first try with homogenous population odds ratio
+FullData <- cbind(Subject=1, SubjectSim(baseCig=baseCig.t, AlcRate = AlcRate.t, AlcOR = AlcOR.t, Days = Days.t))
+for (i in 2:NSubs.t){
+  SubjectData <- cbind(Subject=i, SubjectSim(baseCig=baseCig.t, AlcRate = AlcRate.t, AlcOR = AlcOR.t, Days = Days.t))
+  FullData <- rbind(FullData, SubjectData)
+}
+
+FullData %>% group_by(Subject,Alc) %>% summarise(CigMean=mean(Cig))
+
+
