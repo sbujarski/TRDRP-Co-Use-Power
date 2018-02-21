@@ -4,7 +4,6 @@
 
 library(SpPack)
 library(lme4)
-library(plyr)
 library(dplyr)
 library(tidyr)
 library(ggplot2)
