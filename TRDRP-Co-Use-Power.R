@@ -142,7 +142,9 @@ PowerSim.OR2 <- data.frame(expand.grid(NSubs = seq(50, 300, 20),
                                        baseCig = seq(.20, .80, .20),
                                        AlcRate = seq(.20, .80, .20),
                                        AlcOR = 2,
-                                       Days = 14))
+                                       Days = 14,
+                                       Power.05 = NA,
+                                       Power.01 = NA))
 dim(PowerSim.OR2)
 
 Nsims <- 10
