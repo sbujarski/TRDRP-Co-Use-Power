@@ -30,7 +30,7 @@ SubjectSim <- function(baseCig, AlcRate, AlcOR, Days){
   
   #printing for testing
   #print(paste("ObaseCig",ObaseCig))
-  print(paste("AlcCig",AlcCig))
+  #print(paste("AlcCig",AlcCig))
   
   Cig <- ifelse(Alc==0, rbinom(sum(Alc==0), 1, baseCig), #simulate cigarette smoking with no alcohol
                 rbinom(sum(Alc==1), 1, AlcCig)) #simulate cigarette smoking after drinking
@@ -96,6 +96,7 @@ summary(logistic.MLM)
 NSubs.t = 100 #test parameters
 Days.t = 14
 
+#Simulate randomly variable subject parameters -- baseCig.t, AlcRate.t, AlcOR.t
 #subject specific parameters
 parameters <- data.frame(baseCig.t = rnorm(NSubs.t, .5, .2), #simulate base Cig smoking rate from N(.5, .2)
                          AlcRate.t = rnorm(NSubs.t, .5, .2), #simulate base Cig smoking rate from N(.5, .2))
@@ -135,9 +136,72 @@ summary(logistic.MLM)
 summary(logistic.MLM)$coefficients["Alc","Pr(>|z|)"]
 
 
-#Now that simulation works to make a MLM dataset, need to write some for loops to run simulations for power analysis
+#Now that simulation works to make a nested dataset, need to write some for loops to run simulations for power analysis
 
+PowerSim.OR2 <- data.frame(expand.grid(NSubs = seq(50, 300, 20),
+                                       baseCig = seq(.20, .80, .20),
+                                       AlcRate = seq(.20, .80, .20),
+                                       AlcOR = 2,
+                                       Days = 14))
+dim(PowerSim.OR2)
 
-
-
+Nsims <- 10
+for(p in 1:dim(PowerSim.OR2)[1]) { #walk through power calculations varying NSubs, baseCig, and AlcRate
+  
+  #vector of pvalues to store
+  pvalues <- rep(NA, Nsims)
+  for (n in 1:Nsims){ #run Nsims data simulations for power calculations
+    #print where sim is
+    print(noquote(paste("PowerSim", p, " of ", dim(PowerSim.OR2)[1], " Sim number", n, " of ", Nsims)))
+   
+  
+    #fixed parameters
+    NSubs.t <- PowerSim.OR2$NSubs[p] #pull NSubs.t from PowerSim.OR2 dataframe
+    Days.t <- PowerSim.OR2$Days[p] # same for Days.t
+    
+    #Simulate randomly variable subject parameters -- baseCig.t, AlcRate.t, AlcOR.t
+    parameters <- data.frame(baseCig.t = rnorm(NSubs.t, PowerSim.OR2$baseCig[p], .2), #simulate base Cig smoking rate based on PowerSim.OR2. SD fixed at .2
+                             AlcRate.t = rnorm(NSubs.t, PowerSim.OR2$AlcRate[p], .2), #same for AlcRate.t
+                             AlcOR.t = rlnorm(n=NSubs.t, meanlog=log(PowerSim.OR2$AlcOR[p]), sdlog=.4)) #log normal distribution of subject Odds Ratio (mean OR from PowerSim.OR2, sd=.4)
+    
+    #Ensure no negative rates or >=100% rates
+    #will slightly bias results to the mean, but whatever
+    while(min(parameters$baseCig.t) <= 0 || max(parameters$baseCig.t) >= 1){
+      for(i in 1:NSubs.t){
+        if(parameters$baseCig.t[i] <= 0 || parameters$baseCig.t[i] >= 1){parameters$baseCig.t[i] <- rnorm(1, PowerSim.OR2$baseCig[p], .2)}
+      }
+    }
+    while(min(parameters$AlcRate.t) <= 0 || max(parameters$AlcRate.t) >= 1){
+      for(i in 1:NSubs.t){
+        if(parameters$AlcRate.t[i] <= 0 || parameters$AlcRate.t[i] >= 1){parameters$AlcRate.t[i] <- rnorm(1, PowerSim.OR2$AlcRate[p], .2)}
+      }
+    }
+    
+    #simulate full nested dataset
+    FullData <- cbind(Subject=1, SubjectSim(baseCig=parameters$baseCig.t[1], AlcRate = parameters$AlcRate.t[1], 
+                                            AlcOR = parameters$AlcOR.t[1], Days = Days.t))
+    for (i in 2:NSubs.t){
+      SubjectData <- cbind(Subject=i, SubjectSim(baseCig=parameters$baseCig.t[i], AlcRate = parameters$AlcRate.t[i], 
+                                                 AlcOR = parameters$AlcOR.t[i], Days = Days.t))
+      FullData <- rbind(FullData, SubjectData)
+    }
+    
+    # FullData %>% group_by(Subject,Alc) %>% summarise(CigMean=mean(Cig))
+    # dim(FullData)
+    
+    logistic.MLM <- glmer(Cig ~ (1 | Subject) + Alc,
+                          data=FullData,
+                          family=binomial,
+                          control = glmerControl(optimizer = "bobyqa"))
+    # summary(logistic.MLM)
+    
+    #extract Alc p-value for power calculation later
+    pvalues[n] <- summary(logistic.MLM)$coefficients["Alc","Pr(>|z|)"]
+  }
+  
+  PowerSim.OR2$Power.05[p] <- sum(pvalues < 0.05)/Nsims
+  PowerSim.OR2$Power.01[p] <- sum(pvalues < 0.01)/Nsims
+  
+}
+  
 
