@@ -147,7 +147,7 @@ PowerSim.OR2 <- data.frame(expand.grid(NSubs = seq(50, 300, 20),
                                        Power.01 = NA))
 dim(PowerSim.OR2)
 
-Nsims <- 10
+Nsims <- 1000
 for(p in 1:dim(PowerSim.OR2)[1]) { #walk through power calculations varying NSubs, baseCig, and AlcRate
   
   #vector of pvalues to store
@@ -188,14 +188,10 @@ for(p in 1:dim(PowerSim.OR2)[1]) { #walk through power calculations varying NSub
       FullData <- rbind(FullData, SubjectData)
     }
     
-    # FullData %>% group_by(Subject,Alc) %>% summarise(CigMean=mean(Cig))
-    # dim(FullData)
-    
     logistic.MLM <- glmer(Cig ~ (1 | Subject) + Alc,
                           data=FullData,
                           family=binomial,
                           control = glmerControl(optimizer = "bobyqa"))
-    # summary(logistic.MLM)
     
     #extract Alc p-value for power calculation later
     pvalues[n] <- summary(logistic.MLM)$coefficients["Alc","Pr(>|z|)"]
@@ -203,7 +199,6 @@ for(p in 1:dim(PowerSim.OR2)[1]) { #walk through power calculations varying NSub
   
   PowerSim.OR2$Power.05[p] <- sum(pvalues < 0.05)/Nsims
   PowerSim.OR2$Power.01[p] <- sum(pvalues < 0.01)/Nsims
-  
 }
   
 
