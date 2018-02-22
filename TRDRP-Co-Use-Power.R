@@ -337,3 +337,34 @@ system.time(TRDRP.PowerSim(Nsims=10, NSubs=seq(50, 100, 25), baseCig=c(.2, .5), 
 #Running new power simulations using function
 PowerSim.OR15 <- TRDRP.PowerSim(Nsims=1000, NSubs=seq(50, 300, 25), baseCig=c(.2, .5), AlcRate=c(.2, .5), AlcOR=1.5, Days=14)
 
+#plotting OR15 power analysis
+PowerSim.OR15$AlcRate.Str <- paste("Drinking Rate: ", round(PowerSim.OR15$AlcRate*100), "%", sep="")
+PowerSim.OR15$baseCig.Str <- paste(round(PowerSim.OR15$baseCig*100), "%", sep="")
+
+colorscale <- scales::seq_gradient_pal("lightblue", "navyblue", "Lab")(seq(0,1,length.out=2))
+PowerSim.OR15.plot.05 <- ggplot(PowerSim.OR15, aes(x = NSubs, y=Power.05, colour = baseCig.Str)) +
+  geom_line(size = 2) +
+  facet_wrap(~ AlcRate.Str) +
+  scale_colour_manual("Baseline\nSmoking\nRate", values=colorscale) + 
+  scale_x_continuous("Sample Size", breaks = seq(50, 300, 25)) + 
+  scale_y_continuous("Power (at alpha = 0.05)") +
+  ggtitle("Power from simulation with Odds Ratio = 1.5, Alpha = 0.05\nLevel 2 heterogeneous") +
+  DotRTheme(legend.position = "right", title.size = 16, axis.text.size = 12) +
+  theme(axis.text.x=element_text(angle=90, vjust=.5))
+PowerSim.OR15.plot.05
+ggsave(PowerSim.OR15.plot.05, filename="PowerSim.OR15.plot.05.png", width = 8, height=6, dpi=250)
+
+colorscale <- scales::seq_gradient_pal("lightblue", "navyblue", "Lab")(seq(0,1,length.out=2))
+PowerSim.OR15.plot.01 <- ggplot(PowerSim.OR15, aes(x = NSubs, y=Power.01, colour = baseCig.Str)) +
+  geom_line(size = 2) +
+  facet_wrap(~ AlcRate.Str) +
+  scale_colour_manual("Baseline\nSmoking\nRate", values=colorscale) + 
+  scale_x_continuous("Sample Size", breaks = seq(50, 300, 25)) + 
+  scale_y_continuous("Power (at alpha = 0.01)") +
+  ggtitle("Power from simulation with Odds Ratio = 1.5, Alpha = 0.01\nLevel 2 heterogeneous") +
+  DotRTheme(legend.position = "right", title.size = 16, axis.text.size = 12) +
+  theme(axis.text.x=element_text(angle=90, vjust=.5))
+PowerSim.OR15.plot.01
+ggsave(PowerSim.OR15.plot.01, filename="PowerSim.OR15.plot.01.png", width = 8, height=6, dpi=250)
+
+
