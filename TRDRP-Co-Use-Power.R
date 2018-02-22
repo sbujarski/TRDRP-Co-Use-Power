@@ -200,13 +200,15 @@ for(p in 1:dim(PowerSim.OR2)[1]) {
       FullData <- rbind(FullData, SubjectData)
     }
     
-    logistic.MLM <- glmer(Cig ~ (1 | Subject) + Alc,
-                          data=FullData,
-                          family=binomial,
-                          control = glmerControl(optimizer = "bobyqa"))
+    #This older approach might repeat p-values if the new model doesn't converge for some reason. 
+    # logistic.MLM <- glmer(Cig ~ (1 | Subject) + Alc,
+    #                       data=FullData,
+    #                       family=binomial,
+    #                       control = glmerControl(optimizer = "bobyqa"))
     
     #extract Alc p-value for power calculation later
-    pvalues[n] <- summary(logistic.MLM)$coefficients["Alc","Pr(>|z|)"]
+    pvalues[n] <- summary(glmer(Cig ~ (1 | Subject) + Alc, data=FullData,  
+                                family=binomial, control = glmerControl(optimizer = "bobyqa")))$coefficients["Alc","Pr(>|z|)"]
   }
   
   #calculate power based on simulated datasets and analysis
