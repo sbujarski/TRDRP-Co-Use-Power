@@ -229,7 +229,6 @@ PowerSim.OR2.plot.05 <- ggplot(PowerSim.OR2, aes(x = NSubs, y=Power.05, colour =
   ggtitle("Power from simulation with Odds Ratio = 2, Alpha = 0.05\nLevel 2 heterogeneous") +
   DotRTheme(legend.position = "right", title.size = 16)
 PowerSim.OR2.plot.05
-
 ggsave(PowerSim.OR2.plot.05, filename="PowerSim.OR2.plot.05.png", width = 8, height=6, dpi=250)
 
 colorscale <- scales::seq_gradient_pal("lightblue", "navyblue", "Lab")(seq(0,1,length.out=4))
@@ -242,6 +241,69 @@ PowerSim.OR2.plot.01 <- ggplot(PowerSim.OR2, aes(x = NSubs, y=Power.01, colour =
   ggtitle("Power from simulation with Odds Ratio = 2, Alpha = 0.01\nLevel 2 heterogeneous") +
   DotRTheme(legend.position = "right", title.size = 16)
 PowerSim.OR2.plot.01
-
 ggsave(PowerSim.OR2.plot.01, filename="PowerSim.OR2.plot.01.png", width = 8, height=6, dpi=250)
 
+
+
+#Simplifying for second round of power analysis
+#OR = 1.5
+Nsims=100
+PowerSim.OR15 <- data.frame(expand.grid(NSubs = seq(50, 300, 20),
+                                       baseCig = c(.20, 0.5),
+                                       AlcRate = c(.20, 0.5),
+                                       AlcOR = 1.5,
+                                       Days = 14,
+                                       Power.05 = NA,
+                                       Power.01 = NA))
+
+#Outer for loop to walk through power calculation parameters in PowerSim.OR15
+for(p in 1:dim(PowerSim.OR15)[1]) { 
+  
+  #vector of pvalues to store
+  pvalues <- rep(NA, Nsims)
+  
+  #Inner for loop to generate NSims simulated datasets, perform analysis and store pvalues
+  for (n in 1:Nsims){ #run Nsims data simulations for power calculations
+    #print where sim is
+    print(noquote(paste("PowerSim", p, " of ", dim(PowerSim.OR15)[1], " Sim number", n, " of ", Nsims)))
+    
+    #fixed parameters
+    NSubs.t <- PowerSim.OR15$NSubs[p] #pull NSubs.t from PowerSim.OR15 dataframe
+    Days.t <- PowerSim.OR15$Days[p] # same for Days.t
+    
+    #Simulate randomly variable subject parameters -- baseCig.t, AlcRate.t, AlcOR.t
+    parameters <- data.frame(baseCig.t = rnorm(NSubs.t, PowerSim.OR15$baseCig[p], .2), #simulate base Cig smoking rate based on PowerSim.OR15. SD fixed at .2
+                             AlcRate.t = rnorm(NSubs.t, PowerSim.OR15$AlcRate[p], .2), #same for AlcRate.t
+                             AlcOR.t = rlnorm(n=NSubs.t, meanlog=log(PowerSim.OR15$AlcOR[p]), sdlog=.4)) #log normal distribution of subject Odds Ratio (mean OR from PowerSim.OR15, sd=.4)
+    
+    #Ensure no negative rates or >=100% rates
+    #will slightly bias results to the mean, but whatever
+    while(min(parameters$baseCig.t) <= 0 || max(parameters$baseCig.t) >= 1){
+      for(i in 1:NSubs.t){
+        if(parameters$baseCig.t[i] <= 0 || parameters$baseCig.t[i] >= 1){parameters$baseCig.t[i] <- rnorm(1, PowerSim.OR15$baseCig[p], .2)}
+      }
+    }
+    while(min(parameters$AlcRate.t) <= 0 || max(parameters$AlcRate.t) >= 1){
+      for(i in 1:NSubs.t){
+        if(parameters$AlcRate.t[i] <= 0 || parameters$AlcRate.t[i] >= 1){parameters$AlcRate.t[i] <- rnorm(1, PowerSim.OR15$AlcRate[p], .2)}
+      }
+    }
+    
+    #simulate full nested dataset
+    FullData <- cbind(Subject=1, SubjectSim(baseCig=parameters$baseCig.t[1], AlcRate = parameters$AlcRate.t[1], 
+                                            AlcOR = parameters$AlcOR.t[1], Days = Days.t))
+    for (i in 2:NSubs.t){
+      SubjectData <- cbind(Subject=i, SubjectSim(baseCig=parameters$baseCig.t[i], AlcRate = parameters$AlcRate.t[i], 
+                                                 AlcOR = parameters$AlcOR.t[i], Days = Days.t))
+      FullData <- rbind(FullData, SubjectData)
+    }
+    
+    #extract Alc p-value for power calculation later
+    pvalues[n] <- summary(glmer(Cig ~ (1 | Subject) + Alc, data=FullData,  
+                                family=binomial, control = glmerControl(optimizer = "bobyqa")))$coefficients["Alc","Pr(>|z|)"]
+  }
+  
+  #calculate power based on simulated datasets and analysis
+  PowerSim.OR15$Power.05[p] <- sum(pvalues < 0.05)/sum(!is.na(pvalues))
+  PowerSim.OR15$Power.01[p] <- sum(pvalues < 0.01)/sum(!is.na(pvalues))
+}
