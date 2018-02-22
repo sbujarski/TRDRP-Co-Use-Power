@@ -217,11 +217,12 @@ for(p in 1:dim(PowerSim.OR2)[1]) {
 }
   
 #plotting OR2 power analysis
-PowerSim.OR2$
+PowerSim.OR2$AlcRate.Str <- paste("Drinking Rate: ", PowerSim.OR2$AlcRate)
+  
 colorscale <- scales::seq_gradient_pal("lightblue", "navyblue", "Lab")(seq(0,1,length.out=4))
 PowerSim.OR2.plot.05 <- ggplot(PowerSim.OR2, aes(x = NSubs, y=Power.05, colour = as.factor(baseCig))) +
-  geom_line() +
-  facet_wrap(~ AlcRate) +
+  geom_line(size = 2) +
+  facet_wrap(~ AlcRate.Str) +
   scale_colour_manual("Baseline Smoking Rate", values=colorscale) + 
   scale_x_continuous("Sample Size") + 
   scale_y_continuous("Power (at alpha = 0.05)") +
