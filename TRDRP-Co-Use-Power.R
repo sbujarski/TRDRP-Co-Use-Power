@@ -227,9 +227,21 @@ PowerSim.OR2.plot.05 <- ggplot(PowerSim.OR2, aes(x = NSubs, y=Power.05, colour =
   scale_x_continuous("Sample Size") + 
   scale_y_continuous("Power (at alpha = 0.05)") +
   ggtitle("Power from simulation with Odds Ratio = 2, Alpha = 0.05\nLevel 2 heterogeneous") +
-  DotRTheme(legend.position = "right")
+  DotRTheme(legend.position = "right", title.size = 16)
 PowerSim.OR2.plot.05
 
+ggsave(PowerSim.OR2.plot.05, filename="PowerSim.OR2.plot.05.png", width = 8, height=6, dpi=250)
 
-ggsave(LikeAUQZ.plot, filename="LikeAUQZ.plot.png", width = 6, height=4, dpi=500)
+colorscale <- scales::seq_gradient_pal("lightblue", "navyblue", "Lab")(seq(0,1,length.out=4))
+PowerSim.OR2.plot.01 <- ggplot(PowerSim.OR2, aes(x = NSubs, y=Power.01, colour = as.factor(baseCig))) +
+  geom_line(size = 2) +
+  facet_wrap(~ AlcRate.Str) +
+  scale_colour_manual("Baseline Smoking Rate", values=colorscale) + 
+  scale_x_continuous("Sample Size") + 
+  scale_y_continuous("Power (at alpha = 0.01)") +
+  ggtitle("Power from simulation with Odds Ratio = 2, Alpha = 0.01\nLevel 2 heterogeneous") +
+  DotRTheme(legend.position = "right", title.size = 16)
+PowerSim.OR2.plot.01
+
+ggsave(PowerSim.OR2.plot.01, filename="PowerSim.OR2.plot.01.png", width = 8, height=6, dpi=250)
 
