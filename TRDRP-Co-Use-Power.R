@@ -15,6 +15,7 @@ library(Hmisc) #rcorr
 #plan is 2-weeks of daily data collection per subject
 #EMA study with lots of observations, but for simulation just treat each day as a single potential drug use event
 
+#SubjectSim function
 #Function to generate single subject data
 #baseCig = baseline smoking probability within subject
 #AlcRate = baseline drinking probability within subject
@@ -41,7 +42,7 @@ SubjectSim <- function(baseCig, AlcRate, AlcOR, Days){
 #SubjectSim Testing
 SubjectSim(baseCig=.1, AlcRate = .3, AlcOR = 9, Days = 14)
 
-#run full simulation
+#run full simulation to test SubjectSim
 sim=1000
 NonDrinkCigMeans <- rep(NA, sim)
 DrinkCigMeans <- rep(NA, sim)
@@ -59,7 +60,7 @@ SpHist(NonDrinkCigMeans)
 SpHist(DrinkCigMeans)
 
 
-#simulate multiple subjects
+#Simulate multiple subjects----
 NSubs.t = 100 #test parameters
 baseCig.t = .50
 AlcRate.t = .50
@@ -89,7 +90,7 @@ summary(logistic.MLM)
 
 
 
-#Simulate with subject specific values
+#Simulate with heterogeneous parameters at subject level----
 
 #universal parameters
 NSubs.t = 100 #test parameters
@@ -135,7 +136,18 @@ summary(logistic.MLM)
 summary(logistic.MLM)$coefficients["Alc","Pr(>|z|)"]
 
 
-#Now that simulation works to make a nested dataset, need to write some for loops to run simulations for power analysis
+#Run full power calculation via simulation with nested for loops----
+#number of simulated datasets set to 1000 per parameter combination
+Nsims <- 1000
+
+#Start with power simulation of Odds Ratio = 2
+#Multiple variable parameters for power simulation
+#NSubs - number of subjects between 50 and 300 by 20
+#baseCig - baseline cigarette smoking rate on non-drinking days between .2 and .8 by .2
+#baseAlc - baseline drinking rate on non-drinking days between .2 and .8 by .2
+#AlcOR - Odds ratio of Alcohol effect set to 2
+#Days - days of observation set to 14
+#Returns PowerSim.OR2 dataset with outcome variables of power.05 and power.01 based on simulated power with alpha = 0.05 and 0.01
 
 PowerSim.OR2 <- data.frame(expand.grid(NSubs = seq(50, 300, 20),
                                        baseCig = seq(.20, .80, .20),
@@ -144,13 +156,14 @@ PowerSim.OR2 <- data.frame(expand.grid(NSubs = seq(50, 300, 20),
                                        Days = 14,
                                        Power.05 = NA,
                                        Power.01 = NA))
-dim(PowerSim.OR2)
 
-Nsims <- 1000
-for(p in 1:dim(PowerSim.OR2)[1]) { #walk through power calculations varying NSubs, baseCig, and AlcRate
+#Outer for loop to walk through power calculation parameters in PowerSim.OR2
+for(p in 1:dim(PowerSim.OR2)[1]) { 
   
   #vector of pvalues to store
   pvalues <- rep(NA, Nsims)
+  
+  #Inner for loop to generate NSims simulated datasets, perform analysis and store pvalues
   for (n in 1:Nsims){ #run Nsims data simulations for power calculations
     #print where sim is
     print(noquote(paste("PowerSim", p, " of ", dim(PowerSim.OR2)[1], " Sim number", n, " of ", Nsims)))
@@ -196,7 +209,8 @@ for(p in 1:dim(PowerSim.OR2)[1]) { #walk through power calculations varying NSub
     pvalues[n] <- summary(logistic.MLM)$coefficients["Alc","Pr(>|z|)"]
   }
   
-  PowerSim.OR2$Power.05[p] <- sum(pvalues < 0.05)/Nsims
+  #calculate power based on simulated datasets and analysis
+  PowerSim.OR2$Power.05[p] <- sum(pvalues < 0.05)/Nsims #sum(!is.na(pvalues))
   PowerSim.OR2$Power.01[p] <- sum(pvalues < 0.01)/Nsims
 }
   
