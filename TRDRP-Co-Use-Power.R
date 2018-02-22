@@ -224,10 +224,11 @@ PowerSim.OR2.plot.05 <- ggplot(PowerSim.OR2, aes(x = NSubs, y=Power.05, colour =
   geom_line(size = 2) +
   facet_wrap(~ AlcRate.Str) +
   scale_colour_manual("Baseline Smoking Rate", values=colorscale) + 
-  scale_x_continuous("Sample Size") + 
+  scale_x_continuous("Sample Size", breaks = seq(50,300,20)) + 
   scale_y_continuous("Power (at alpha = 0.05)") +
   ggtitle("Power from simulation with Odds Ratio = 2, Alpha = 0.05\nLevel 2 heterogeneous") +
-  DotRTheme(legend.position = "right", title.size = 16)
+  DotRTheme(legend.position = "right", title.size = 16, axis.text.size = 12) +
+  theme(axis.text.x=element_text(angle=90, vjust=.5))
 PowerSim.OR2.plot.05
 ggsave(PowerSim.OR2.plot.05, filename="PowerSim.OR2.plot.05.png", width = 8, height=6, dpi=250)
 
@@ -236,10 +237,11 @@ PowerSim.OR2.plot.01 <- ggplot(PowerSim.OR2, aes(x = NSubs, y=Power.01, colour =
   geom_line(size = 2) +
   facet_wrap(~ AlcRate.Str) +
   scale_colour_manual("Baseline Smoking Rate", values=colorscale) + 
-  scale_x_continuous("Sample Size") + 
+  scale_x_continuous("Sample Size", breaks = seq(50,300,20)) + 
   scale_y_continuous("Power (at alpha = 0.01)") +
   ggtitle("Power from simulation with Odds Ratio = 2, Alpha = 0.01\nLevel 2 heterogeneous") +
-  DotRTheme(legend.position = "right", title.size = 16)
+  DotRTheme(legend.position = "right", title.size = 16, axis.text.size = 12) +
+  theme(axis.text.x=element_text(angle=90, vjust=.5))
 PowerSim.OR2.plot.01
 ggsave(PowerSim.OR2.plot.01, filename="PowerSim.OR2.plot.01.png", width = 8, height=6, dpi=250)
 
@@ -332,5 +334,6 @@ system.time(TRDRP.PowerSim(Nsims=10, NSubs=seq(50, 100, 25), baseCig=c(.2, .5), 
 #31.50    0.06   31.59
 #No benefit at all of compiler
 
+#Running new power simulations using function
 PowerSim.OR15 <- TRDRP.PowerSim(Nsims=1000, NSubs=seq(50, 300, 25), baseCig=c(.2, .5), AlcRate=c(.2, .5), AlcOR=1.5, Days=14)
 
