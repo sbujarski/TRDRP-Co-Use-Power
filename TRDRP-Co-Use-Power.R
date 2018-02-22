@@ -367,4 +367,8 @@ PowerSim.OR15.plot.01 <- ggplot(PowerSim.OR15, aes(x = NSubs, y=Power.01, colour
 PowerSim.OR15.plot.01
 ggsave(PowerSim.OR15.plot.01, filename="PowerSim.OR15.plot.01.png", width = 8, height=6, dpi=250)
 
+#save results
+write.csv(PowerSim.OR2, "PowerSim.OR2.csv")
+write.csv(PowerSim.OR15, "PowerSim.OR15.csv")
+
 
