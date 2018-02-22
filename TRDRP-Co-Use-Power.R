@@ -216,4 +216,19 @@ for(p in 1:dim(PowerSim.OR2)[1]) {
   PowerSim.OR2$Power.01[p] <- sum(pvalues < 0.01)/Nsims
 }
   
+#plotting OR2 power analysis
+PowerSim.OR2$
+colorscale <- scales::seq_gradient_pal("lightblue", "navyblue", "Lab")(seq(0,1,length.out=4))
+PowerSim.OR2.plot.05 <- ggplot(PowerSim.OR2, aes(x = NSubs, y=Power.05, colour = as.factor(baseCig))) +
+  geom_line() +
+  facet_wrap(~ AlcRate) +
+  scale_colour_manual("Baseline Smoking Rate", values=colorscale) + 
+  scale_x_continuous("Sample Size") + 
+  scale_y_continuous("Power (at alpha = 0.05)") +
+  ggtitle("Power from simulation with Odds Ratio = 2, Alpha = 0.05\nLevel 2 heterogeneous") +
+  DotRTheme(legend.position = "right")
+PowerSim.OR2.plot.05
+
+
+ggsave(LikeAUQZ.plot, filename="LikeAUQZ.plot.png", width = 6, height=4, dpi=500)
 
