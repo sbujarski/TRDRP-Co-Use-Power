@@ -245,65 +245,92 @@ ggsave(PowerSim.OR2.plot.01, filename="PowerSim.OR2.plot.01.png", width = 8, hei
 
 
 
-#Simplifying for second round of power analysis
-#OR = 1.5
-Nsims=100
-PowerSim.OR15 <- data.frame(expand.grid(NSubs = seq(50, 300, 20),
-                                       baseCig = c(.20, 0.5),
-                                       AlcRate = c(.20, 0.5),
-                                       AlcOR = 1.5,
-                                       Days = 14,
-                                       Power.05 = NA,
-                                       Power.01 = NA))
+#Make a function to compile hopefully to speed up
+TRDRP.PowerSim <- function(Nsims, NSubs, baseCig, AlcRate, AlcOR, Days){
+  #create dataframe of parameters to test
+  PowerSim <- expand.grid(NSubs = NSubs,
+                          baseCig = baseCig,
+                          AlcRate = AlcRate,
+                          AlcOR = AlcOR,
+                          Days = Days,
+                          Power.05 = NA,
+                          Power.01 = NA)
+  
+  #Outer for loop to walk through power calculation parameters in PowerSim
+  for(p in 1:dim(PowerSim)[1]) {
 
-#Outer for loop to walk through power calculation parameters in PowerSim.OR15
-for(p in 1:dim(PowerSim.OR15)[1]) { 
-  
-  #vector of pvalues to store
-  pvalues <- rep(NA, Nsims)
-  
-  #Inner for loop to generate NSims simulated datasets, perform analysis and store pvalues
-  for (n in 1:Nsims){ #run Nsims data simulations for power calculations
-    #print where sim is
-    print(noquote(paste("PowerSim", p, " of ", dim(PowerSim.OR15)[1], " Sim number", n, " of ", Nsims)))
-    
-    #fixed parameters
-    NSubs.t <- PowerSim.OR15$NSubs[p] #pull NSubs.t from PowerSim.OR15 dataframe
-    Days.t <- PowerSim.OR15$Days[p] # same for Days.t
-    
-    #Simulate randomly variable subject parameters -- baseCig.t, AlcRate.t, AlcOR.t
-    parameters <- data.frame(baseCig.t = rnorm(NSubs.t, PowerSim.OR15$baseCig[p], .2), #simulate base Cig smoking rate based on PowerSim.OR15. SD fixed at .2
-                             AlcRate.t = rnorm(NSubs.t, PowerSim.OR15$AlcRate[p], .2), #same for AlcRate.t
-                             AlcOR.t = rlnorm(n=NSubs.t, meanlog=log(PowerSim.OR15$AlcOR[p]), sdlog=.4)) #log normal distribution of subject Odds Ratio (mean OR from PowerSim.OR15, sd=.4)
-    
-    #Ensure no negative rates or >=100% rates
-    #will slightly bias results to the mean, but whatever
-    while(min(parameters$baseCig.t) <= 0 || max(parameters$baseCig.t) >= 1){
-      for(i in 1:NSubs.t){
-        if(parameters$baseCig.t[i] <= 0 || parameters$baseCig.t[i] >= 1){parameters$baseCig.t[i] <- rnorm(1, PowerSim.OR15$baseCig[p], .2)}
+    #vector of pvalues to store
+    pvalues <- rep(NA, Nsims)
+
+    #Inner for loop to generate NSims simulated datasets, perform analysis and store pvalues
+    for (n in 1:Nsims){ #run Nsims data simulations for power calculations
+      #print where sim is
+      print(noquote(paste("PowerSim", p, " of ", dim(PowerSim)[1], " Sim number", n, " of ", Nsims)))
+
+      #fixed parameters
+      NSubs.t <- PowerSim$NSubs[p] #pull NSubs.t from PowerSim dataframe
+      Days.t <- PowerSim$Days[p] # same for Days.t
+
+      #Simulate randomly variable subject parameters -- baseCig.t, AlcRate.t, AlcOR.t
+      parameters <- data.frame(baseCig.t = rnorm(NSubs.t, PowerSim$baseCig[p], .2), #simulate base Cig smoking rate based on PowerSim. SD fixed at .2
+                               AlcRate.t = rnorm(NSubs.t, PowerSim$AlcRate[p], .2), #same for AlcRate.t
+                               AlcOR.t = rlnorm(n=NSubs.t, meanlog=log(PowerSim$AlcOR[p]), sdlog=.4)) #log normal distribution of subject Odds Ratio (mean OR from PowerSim, sd=.4)
+
+      #Ensure no negative rates or >=100% rates
+      #will slightly bias results to the mean, but whatever
+      while(min(parameters$baseCig.t) <= 0 || max(parameters$baseCig.t) >= 1){
+        for(i in 1:NSubs.t){
+          if(parameters$baseCig.t[i] <= 0 || parameters$baseCig.t[i] >= 1){parameters$baseCig.t[i] <- rnorm(1, PowerSim$baseCig[p], .2)}
+        }
       }
-    }
-    while(min(parameters$AlcRate.t) <= 0 || max(parameters$AlcRate.t) >= 1){
-      for(i in 1:NSubs.t){
-        if(parameters$AlcRate.t[i] <= 0 || parameters$AlcRate.t[i] >= 1){parameters$AlcRate.t[i] <- rnorm(1, PowerSim.OR15$AlcRate[p], .2)}
+      while(min(parameters$AlcRate.t) <= 0 || max(parameters$AlcRate.t) >= 1){
+        for(i in 1:NSubs.t){
+          if(parameters$AlcRate.t[i] <= 0 || parameters$AlcRate.t[i] >= 1){parameters$AlcRate.t[i] <- rnorm(1, PowerSim$AlcRate[p], .2)}
+        }
       }
+
+      #simulate full nested dataset
+      FullData <- cbind(Subject=1, SubjectSim(baseCig=parameters$baseCig.t[1], AlcRate = parameters$AlcRate.t[1],
+                                              AlcOR = parameters$AlcOR.t[1], Days = Days.t))
+      for (i in 2:NSubs.t){
+        SubjectData <- cbind(Subject=i, SubjectSim(baseCig=parameters$baseCig.t[i], AlcRate = parameters$AlcRate.t[i],
+                                                   AlcOR = parameters$AlcOR.t[i], Days = Days.t))
+        FullData <- rbind(FullData, SubjectData)
+      }
+
+      #extract Alc p-value for power calculation later
+      pvalues[n] <- summary(glmer(Cig ~ (1 | Subject) + Alc, data=FullData,
+                                  family=binomial, control = glmerControl(optimizer = "bobyqa")))$coefficients["Alc","Pr(>|z|)"]
     }
-    
-    #simulate full nested dataset
-    FullData <- cbind(Subject=1, SubjectSim(baseCig=parameters$baseCig.t[1], AlcRate = parameters$AlcRate.t[1], 
-                                            AlcOR = parameters$AlcOR.t[1], Days = Days.t))
-    for (i in 2:NSubs.t){
-      SubjectData <- cbind(Subject=i, SubjectSim(baseCig=parameters$baseCig.t[i], AlcRate = parameters$AlcRate.t[i], 
-                                                 AlcOR = parameters$AlcOR.t[i], Days = Days.t))
-      FullData <- rbind(FullData, SubjectData)
-    }
-    
-    #extract Alc p-value for power calculation later
-    pvalues[n] <- summary(glmer(Cig ~ (1 | Subject) + Alc, data=FullData,  
-                                family=binomial, control = glmerControl(optimizer = "bobyqa")))$coefficients["Alc","Pr(>|z|)"]
+
+    #calculate power based on simulated datasets and analysis
+    PowerSim$Power.05[p] <- sum(pvalues < 0.05)/sum(!is.na(pvalues))
+    PowerSim$Power.01[p] <- sum(pvalues < 0.01)/sum(!is.na(pvalues))
   }
   
-  #calculate power based on simulated datasets and analysis
-  PowerSim.OR15$Power.05[p] <- sum(pvalues < 0.05)/sum(!is.na(pvalues))
-  PowerSim.OR15$Power.01[p] <- sum(pvalues < 0.01)/sum(!is.na(pvalues))
+  return(PowerSim)
 }
+
+
+TRDRP.PowerSim(Nsims=10, NSubs=seq(50, 100, 25), baseCig=c(.2, .5), AlcRate=c(.2, .5), AlcOR=2, Days=14)
+
+#test speed
+system.time(TRDRP.PowerSim(Nsims=10, NSubs=seq(50, 100, 25), baseCig=c(.2, .5), AlcRate=c(.2, .5), AlcOR=2, Days=14))
+#user  system elapsed 
+#30.95    0.11   33.12 
+
+require(compiler)
+cmpfun(TRDRP.PowerSim)
+system.time(TRDRP.PowerSim(Nsims=10, NSubs=seq(50, 100, 25), baseCig=c(.2, .5), AlcRate=c(.2, .5), AlcOR=2, Days=14))
+#   user  system elapsed 
+#28.48    0.06   29.61 
+#Not that much speedup
+
+cmpfun(SubjectSim)
+system.time(TRDRP.PowerSim(Nsims=10, NSubs=seq(50, 100, 25), baseCig=c(.2, .5), AlcRate=c(.2, .5), AlcOR=2, Days=14))
+#   user  system elapsed 
+#31.50    0.06   31.59
+#No benefit at all of compiler
+
+PowerSim.OR15 <- TRDRP.PowerSim(Nsims=1000, NSubs=seq(50, 300, 25), baseCig=c(.2, .5), AlcRate=c(.2, .5), AlcOR=1.5, Days=14)
+
