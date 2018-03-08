@@ -372,3 +372,11 @@ write.csv(PowerSim.OR2, "PowerSim.OR2.csv")
 write.csv(PowerSim.OR15, "PowerSim.OR15.csv")
 
 
+
+#For in prep paper 
+#Running new power simulations using function
+PowerSim.OR15.InPrep <- TRDRP.PowerSim(Nsims=5000, NSubs=179, baseCig=0.5, AlcRate=0.5, AlcOR=1.5, Days=30)
+#  NSubs baseCig AlcRate AlcOR Days Power.05 Power.01
+#1   179     0.5     0.5   1.5   30   0.9994   0.9974
+
+
